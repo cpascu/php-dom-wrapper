@@ -355,8 +355,11 @@ trait ManipulationTrait
         }
 
         $result = $node->getAttribute($name);
+        // Return Values
+        // The value of the attribute, or an empty string if no attribute with the given name is found.
+        // https://www.php.net/manual/en/domelement.getattribute.php
 
-        if (empty($result)) {
+        if ('' === $result) {
             return null;
         }
 
