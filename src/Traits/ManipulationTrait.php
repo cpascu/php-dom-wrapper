@@ -699,13 +699,19 @@ trait ManipulationTrait
         }
 
         if (!is_null($value)) {
+            $styles = [];
+
             if (!empty($value)) {
                 $map[$name] = $value;
             } else {
                 unset($map[$name]);
             }
 
-            $this->setAttr('style', trim(implode('; ', $map)));
+            foreach ($map as $name => $value) {
+                $styles[] = "{$name}: $value";
+            }
+
+            $this->attr('style', trim(implode('; ', $styles)));
         } else {
             return !empty($map[$name]) ? $map[$name] : '';
         }
