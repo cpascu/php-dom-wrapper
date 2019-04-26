@@ -684,7 +684,7 @@ trait ManipulationTrait
         }
     }
 
-    public function css($name, $value) {
+    public function css($name, $value = null) {
         $currentStyle = $this->getAttr('style');
         $components   = explode(';', $currentStyle);
         $map          = [];
@@ -693,12 +693,22 @@ trait ManipulationTrait
             $component = trim($component);
             $parts     = explode(':', $component);
 
-            $map[trim($parts[0])] = trim($parts[1]);
+            if (!empty($parts[0]) && !empty($parts[1])) {
+                $map[trim($parts[0])] = trim($parts[1]);
+            }
         }
 
-        $map[$name] = $value;
+        if (!is_null($value)) {
+            if (!empty($value)) {
+                $map[$name] = $value;
+            } else {
+                unset($map[$name]);
+            }
 
-        $this->setAttr('style', implode(';', $map));
+            $this->setAttr('style', trim(implode('; ', $map)));
+        } else {
+            return $map[$name];
+        }
 
         return $this;
     }
