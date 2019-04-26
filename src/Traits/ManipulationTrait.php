@@ -683,4 +683,23 @@ trait ManipulationTrait
             return $this->setHtml($input);
         }
     }
+
+    public function css($name, $value) {
+        $currentStyle = $this->getAttr('style');
+        $components   = explode(';', $currentStyle);
+        $map          = [];
+
+        foreach ($components as $component) {
+            $component = trim($component);
+            $parts     = explode(':', $component);
+
+            $map[trim($parts[0])] = trim($parts[1]);
+        }
+
+        $map[$name] = $value;
+
+        $this->setAttr('style', implode(';', $map));
+
+        return $this;
+    }
 }
