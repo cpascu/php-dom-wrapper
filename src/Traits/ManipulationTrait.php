@@ -707,7 +707,7 @@ trait ManipulationTrait
 
             $this->setAttr('style', trim(implode('; ', $map)));
         } else {
-            return $map[$name];
+            return !empty($map[$name]) ? $map[$name] : '';
         }
 
         return $this;
