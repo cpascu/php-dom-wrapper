@@ -685,37 +685,48 @@ trait ManipulationTrait
     }
 
     public function css($name, $value = null) {
-        $currentStyle = $this->getAttr('style');
-        $components   = explode(';', $currentStyle);
-        $map          = [];
+        $returnVal = '';
 
-        foreach ($components as $component) {
-            $component = trim($component);
-            $parts     = explode(':', $component);
+        $this->collection()->each(function ($node) use ($name, $value, &$returnVal) {
+            if ($node instanceof \DOMElement) {
+                $currentStyle = $node->getAttribute('style');
+                $components   = explode(';', $currentStyle);
+                $map          = [];
 
-            if (!empty($parts[0]) && !empty($parts[1])) {
-                $map[trim($parts[0])] = trim($parts[1]);
+                foreach ($components as $component) {
+                    $component = trim($component);
+                    $parts     = explode(':', $component);
+
+                    if (!empty($parts[0]) && !empty($parts[1])) {
+                        $map[trim($parts[0])] = trim($parts[1]);
+                    }
+                }
+
+                if (!is_null($value)) {
+                    $styles = [];
+
+                    if (!empty($value)) {
+                        $map[$name] = $value;
+                    } else {
+                        unset($map[$name]);
+                    }
+
+                    foreach ($map as $name => $value) {
+                        $styles[] = "{$name}: $value";
+                    }
+
+                    $node->setAttr('style', trim(implode('; ', $styles)));
+                } else {
+                    $returnVal = !empty($map[$name]) ? $map[$name] : '';
+                    return false;
+                }
             }
-        }
+        });
 
-        if (!is_null($value)) {
-            $styles = [];
-
-            if (!empty($value)) {
-                $map[$name] = $value;
-            } else {
-                unset($map[$name]);
-            }
-
-            foreach ($map as $name => $value) {
-                $styles[] = "{$name}: $value";
-            }
-
-            $this->attr('style', trim(implode('; ', $styles)));
+        if (is_null($value)) {
+            return $returnVal;
         } else {
-            return !empty($map[$name]) ? $map[$name] : '';
+            return $this;
         }
-
-        return $this;
     }
 }
