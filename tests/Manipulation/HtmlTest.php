@@ -2,7 +2,7 @@
 
 namespace DOMWrap\Tests\Manipulation;
 
-class HtmlTest extends \PHPUnit_Framework_TestCase
+class HtmlTest extends \PHPUnit\Framework\TestCase
 {
     use \DOMWrap\Tests\Harness\TestTrait;
 
@@ -69,7 +69,7 @@ class HtmlTest extends \PHPUnit_Framework_TestCase
     }
 
     public function testHtmlGetDocument() {
-        $expected = '<?xml encoding="utf-8"?><html><body><div class="test"><article><a href="http://example.org/">this is a test</a></article></div></body></html>';
+        $expected = '<html><body><div class="test"><article><a href="http://example.org/">this is a test</a></article></div></body></html>';
         $doc = $this->document('<html><body><div class="test"><article><a href="http://example.org/">this is a test</a></article></div></body></html>');
 
         $html = $doc->html();
