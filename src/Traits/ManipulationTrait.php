@@ -397,10 +397,19 @@ trait ManipulationTrait
         $node = $this->collection()->first();
 
         if (!($node instanceof \DOMElement)) {
-            return '';
+            return null;
         }
 
-        return $node->getAttribute($name);
+        $result = $node->getAttribute($name);
+        // Return Values
+        // The value of the attribute, or an empty string if no attribute with the given name is found.
+        // https://www.php.net/manual/en/domelement.getattribute.php
+
+        if ('' === $result) {
+            return null;
+        }
+
+        return $result;
     }
 
     /**
@@ -734,6 +743,52 @@ trait ManipulationTrait
             return $this->getHtml();
         } else {
             return $this->setHtml($input);
+        }
+    }
+
+    public function css($name, $value = null) {
+        $returnVal = '';
+
+        $this->collection()->each(function ($node) use ($name, $value, &$returnVal) {
+            if ($node instanceof \DOMElement) {
+                $currentStyle = $node->getAttribute('style');
+                $components   = explode(';', $currentStyle);
+                $map          = [];
+
+                foreach ($components as $component) {
+                    $component = trim($component);
+                    $parts     = explode(':', $component);
+
+                    if (!empty($parts[0]) && !empty($parts[1])) {
+                        $map[trim($parts[0])] = trim($parts[1]);
+                    }
+                }
+
+                if (!is_null($value)) {
+                    $styles = [];
+
+                    if (!empty($value)) {
+                        $map[$name] = $value;
+                    } else {
+                        unset($map[$name]);
+                    }
+
+                    foreach ($map as $name => $value) {
+                        $styles[] = "{$name}: $value";
+                    }
+
+                    $node->setAttr('style', trim(implode('; ', $styles)));
+                } else {
+                    $returnVal = !empty($map[$name]) ? $map[$name] : '';
+                    return false;
+                }
+            }
+        });
+
+        if (is_null($value)) {
+            return $returnVal;
+        } else {
+            return $this;
         }
     }
 
