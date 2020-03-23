@@ -391,9 +391,9 @@ trait ManipulationTrait
      *
      * @param string $name
      *
-     * @return string
+     * @return mixed
      */
-    public function getAttr(string $name): string {
+    public function getAttr(string $name) {
         $node = $this->collection()->first();
 
         if (!($node instanceof \DOMElement)) {
