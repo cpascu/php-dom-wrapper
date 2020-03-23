@@ -1,12 +1,11 @@
-<?php declare(strict_types=1);
+<?php
 
 namespace DOMWrap;
 
-use DOMWrap\Traits\{
-    CommonTrait,
-    TraversalTrait,
-    ManipulationTrait
-};
+use DOMWrap\Document;
+use DOMWrap\Traits\CommonTrait;
+use DOMWrap\Traits\TraversalTrait;
+use DOMWrap\Traits\ManipulationTrait;
 use DOMWrap\Collections\NodeCollection;
 
 /**
@@ -28,9 +27,9 @@ class NodeList extends NodeCollection
 
     /**
      * @param Document $document
-     * @param iterable $nodes
+     * @param Traversable|array $nodes
      */
-    public function __construct(Document $document = null, iterable $nodes = null) {
+    public function __construct(Document $document = null, $nodes = null) {
         parent::__construct($nodes);
 
         $this->document = $document;
@@ -38,11 +37,11 @@ class NodeList extends NodeCollection
 
     /**
      * @param string $name
-     * @param array $arguments
+     * @param mixed $arguments
      *
      * @return mixed
      */
-    public function __call(string $name, array $arguments) {
+    public function __call($name, $arguments) {
         try {
             $result = $this->__manipulationCall($name, $arguments);
         } catch (\BadMethodCallException $e) {
@@ -59,28 +58,28 @@ class NodeList extends NodeCollection
     /**
      * {@inheritdoc}
      */
-    public function collection(): NodeList {
+    public function collection() {
         return $this;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function document(): ?\DOMDocument {
+    public function document() {
         return $this->document;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function result(NodeList $nodeList) {
+    public function result($nodeList) {
         return $nodeList;
     }
 
     /**
      * @return NodeList
      */
-    public function reverse(): NodeList {
+    public function reverse() {
         array_reverse($this->nodes);
 
         return $this;
@@ -112,7 +111,7 @@ class NodeList extends NodeCollection
      *
      * @return mixed
      */
-    public function get(int $key) {
+    public function get($key) {
         if (isset($this->nodes[$key])) {
             return $this->nodes[$key];
         }
@@ -121,23 +120,19 @@ class NodeList extends NodeCollection
     }
 
     /**
-     * @param int $key
+     * @param mixed $key
      * @param mixed $value
-     *
-     * @return self
      */
-    public function set(int $key, $value): self {
+    public function set($key, $value) {
         $this->nodes[$key] = $value;
-
-        return $this;
     }
 
     /**
-     * @param callable $function
+     * @param \Closure $function
      *
      * @return self
      */
-    public function each(callable $function): self {
+    public function each(\Closure $function) {
         foreach ($this->nodes as $index => $node) {
             $result = $function($node, $index);
 
@@ -150,11 +145,11 @@ class NodeList extends NodeCollection
     }
 
     /**
-     * @param callable $function
+     * @param \Closure $function
      *
      * @return NodeList
      */
-    public function map(callable $function): NodeList {
+    public function map(\Closure $function) {
         $nodes = $this->newNodeList();
 
         foreach ($this->nodes as $node) {
@@ -169,33 +164,30 @@ class NodeList extends NodeCollection
     }
 
     /**
-     * @param callable $function
-     * @param mixed|null $initial
+     * @param \Closure $function
      *
-     * @return iterable
+     * @return mixed[]
      */
-    public function reduce(callable $function, $initial = null) {
+    public function reduce(\Closure $function, $initial = null) {
         return array_reduce($this->nodes, $function, $initial);
     }
 
     /**
-     * @return array
+     * @return mixed
      */
     public function toArray() {
         return $this->nodes;
     }
 
     /**
-     * @param iterable $nodes
+     * @param \Traversable|array $nodes
      */
-    public function fromArray(iterable $nodes = null) {
-        $this->nodes = [];
-
-        if (is_iterable($nodes)) {
-            foreach ($nodes as $node) {
-                $this->nodes[] = $node;
-            }
+    public function fromArray($nodes = null) {
+        if (!is_array($nodes) && !($nodes instanceof \Traversable)) {
+            $nodes = [];
         }
+
+        $this->nodes = $nodes;
     }
 
     /**
@@ -203,7 +195,7 @@ class NodeList extends NodeCollection
      *
      * @return NodeList
      */
-    public function merge($elements = []): NodeList {
+    public function merge($elements = []) {
         if (!is_array($elements)) {
             $elements = $elements->toArray();
         }
@@ -217,7 +209,7 @@ class NodeList extends NodeCollection
      *
      * @return NodeList
      */
-    public function slice(int $start, int $end = null): NodeList {
+    public function slice($start, $end = null) {
         $nodeList = array_slice($this->toArray(), $start, $end);
 
         return $this->newNodeList($nodeList);
@@ -228,7 +220,7 @@ class NodeList extends NodeCollection
      *
      * @return self
      */
-    public function push(\DOMNode $node): self {
+    public function push(\DOMNode $node) {
         $this->nodes[] = $node;
 
         return $this;
@@ -237,7 +229,7 @@ class NodeList extends NodeCollection
     /**
      * @return \DOMNode
      */
-    public function pop(): \DOMNode {
+    public function pop() {
         return array_pop($this->nodes);
     }
 
@@ -246,7 +238,7 @@ class NodeList extends NodeCollection
      *
      * @return self
      */
-    public function unshift(\DOMNode $node): self {
+    public function unshift(\DOMNode $node) {
         array_unshift($this->nodes, $node);
 
         return $this;
@@ -255,7 +247,7 @@ class NodeList extends NodeCollection
     /**
      * @return \DOMNode
      */
-    public function shift(): \DOMNode {
+    public function shift() {
         return array_shift($this->nodes);
     }
 
@@ -264,7 +256,7 @@ class NodeList extends NodeCollection
      *
      * @return bool
      */
-    public function exists(\DOMNode $node): bool {
+    public function exists(\DOMNode $node) {
         return in_array($node, $this->nodes, true);
     }
 
@@ -273,7 +265,7 @@ class NodeList extends NodeCollection
      *
      * @return self
      */
-    public function delete(\DOMNode $node): self {
+    public function delete(\DOMNode $node) {
         $index = array_search($node, $this->nodes, true);
 
         if ($index !== false) {
@@ -286,7 +278,7 @@ class NodeList extends NodeCollection
     /**
      * @return bool
      */
-    public function isRemoved(): bool {
+    public function isRemoved() {
         return false;
     }
 }

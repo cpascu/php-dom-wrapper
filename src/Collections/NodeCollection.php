@@ -1,6 +1,12 @@
-<?php declare(strict_types=1);
+<?php
 
 namespace DOMWrap\Collections;
+
+use Countable;
+use ArrayAccess;
+use RecursiveIterator;
+use RecursiveIteratorIterator;
+use Traversable;
 
 /**
  * Node List
@@ -8,16 +14,16 @@ namespace DOMWrap\Collections;
  * @package DOMWrap\Collections
  * @license http://opensource.org/licenses/BSD-3-Clause BSD 3 Clause
  */
-class NodeCollection implements \Countable, \ArrayAccess, \RecursiveIterator
+class NodeCollection implements Countable, ArrayAccess, RecursiveIterator
 {
-    /** @var array */
+    /** @var array|\Traversable */
     protected $nodes = [];
 
     /**
-     * @param iterable $nodes
+     * @param Traversable|array $nodes
      */
-    public function __construct(iterable $nodes = null) {
-        if (!is_iterable($nodes)) {
+    public function __construct($nodes = null) {
+        if (!is_array($nodes) && !($nodes instanceof \Traversable)) {
             $nodes = [];
         }
 
@@ -27,27 +33,27 @@ class NodeCollection implements \Countable, \ArrayAccess, \RecursiveIterator
     }
 
     /**
-     * @see \Countable::count()
+     * @see Countable::count()
      *
      * @return int
      */
-    public function count(): int {
+    public function count() {
         return count($this->nodes);
     }
 
     /**
-     * @see \ArrayAccess::offsetExists()
+     * @see ArrayAccess::offsetExists()
      *
      * @param mixed $offset
      *
      * @return bool
      */
-    public function offsetExists($offset): bool {
+    public function offsetExists($offset) {
         return isset($this->nodes[$offset]);
     }
 
     /**
-     * @see \ArrayAccess::offsetGet()
+     * @see ArrayAccess::offsetGet()
      *
      * @param mixed $offset
      *
@@ -58,12 +64,12 @@ class NodeCollection implements \Countable, \ArrayAccess, \RecursiveIterator
     }
 
     /**
-     * @see \ArrayAccess::offsetSet()
+     * @see ArrayAccess::offsetSet()
      *
      * @param mixed $offset
      * @param mixed $value
      */
-    public function offsetSet($offset, $value): void {
+    public function offsetSet($offset, $value) {
         if (is_null($offset)) {
             $this->nodes[] = $value;
         } else {
@@ -72,29 +78,29 @@ class NodeCollection implements \Countable, \ArrayAccess, \RecursiveIterator
     }
 
     /**
-     * @see \ArrayAccess::offsetUnset()
+     * @see ArrayAccess::offsetUnset()
      *
      * @param mixed $offset
      */
-    public function offsetUnset($offset): void {
+    public function offsetUnset($offset) {
         unset($this->nodes[$offset]);
     }
 
     /**
-     * @see \RecursiveIterator::RecursiveIteratorIterator()
+     * @see RecursiveIterator::RecursiveIteratorIterator()
      *
-     * @return \RecursiveIteratorIterator
+     * @return RecursiveIteratorIterator
      */
-    public function getRecursiveIterator(): \RecursiveIteratorIterator {
-        return new \RecursiveIteratorIterator($this, \RecursiveIteratorIterator::SELF_FIRST);
+    public function getRecursiveIterator() {
+        return new RecursiveIteratorIterator($this, RecursiveIteratorIterator::SELF_FIRST);
     }
 
     /**
-     * @see \RecursiveIterator::getChildren()
+     * @see RecursiveIterator::getChildren()
      *
-     * @return \RecursiveIterator
+     * @return RecursiveIterator
      */
-    public function getChildren(): \RecursiveIterator {
+    public function getChildren() {
         $nodes = [];
 
         if ($this->valid()) {
@@ -105,11 +111,11 @@ class NodeCollection implements \Countable, \ArrayAccess, \RecursiveIterator
     }
 
     /**
-     * @see \RecursiveIterator::hasChildren()
+     * @see RecursiveIterator::hasChildren()
      *
      * @return bool
      */
-    public function hasChildren(): bool {
+    public function hasChildren() {
         if ($this->valid()) {
             return $this->current()->hasChildNodes();
         }
@@ -118,8 +124,8 @@ class NodeCollection implements \Countable, \ArrayAccess, \RecursiveIterator
     }
 
     /**
-     * @see \RecursiveIterator::current()
-     * @see \Iterator::current()
+     * @see RecursiveIterator::current()
+     * @see Iterator::current()
      *
      * @return mixed
      */
@@ -128,8 +134,8 @@ class NodeCollection implements \Countable, \ArrayAccess, \RecursiveIterator
     }
 
     /**
-     * @see \RecursiveIterator::key()
-     * @see \Iterator::key()
+     * @see RecursiveIterator::key()
+     * @see Iterator::key()
      *
      * @return mixed
      */
@@ -138,8 +144,8 @@ class NodeCollection implements \Countable, \ArrayAccess, \RecursiveIterator
     }
 
     /**
-     * @see \RecursiveIterator::next()
-     * @see \Iterator::next()
+     * @see RecursiveIterator::next()
+     * @see Iterator::next()
      *
      * @return mixed
      */
@@ -148,8 +154,8 @@ class NodeCollection implements \Countable, \ArrayAccess, \RecursiveIterator
     }
 
     /**
-     * @see \RecursiveIterator::rewind()
-     * @see \Iterator::rewind()
+     * @see RecursiveIterator::rewind()
+     * @see Iterator::rewind()
      *
      * @return mixed
      */
@@ -158,12 +164,12 @@ class NodeCollection implements \Countable, \ArrayAccess, \RecursiveIterator
     }
 
     /**
-     * @see \RecursiveIterator::valid()
-     * @see \Iterator::valid()
+     * @see RecursiveIterator::valid()
+     * @see Iterator::valid()
      *
      * @return bool
      */
-    public function valid(): bool {
+    public function valid() {
         return key($this->nodes) !== null;
     }
 }

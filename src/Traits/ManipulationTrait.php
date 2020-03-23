@@ -1,12 +1,10 @@
-<?php declare(strict_types=1);
+<?php
 
 namespace DOMWrap\Traits;
 
-use DOMWrap\{
-    Text,
-    Element,
-    NodeList
-};
+use DOMWrap\Text;
+use DOMWrap\Element;
+use DOMWrap\NodeList;
 
 /**
  * Manipulation Trait
@@ -16,15 +14,33 @@ use DOMWrap\{
  */
 trait ManipulationTrait
 {
+    /** @see CommonTrait::collection() */
+    abstract public function collection();
+
+    /** @see CommonTrait::document() */
+    abstract public function document();
+
+    /** @see CommonTrait::result() */
+    abstract public function result($nodeList);
+
+    /** @see TraversalTrait::find() */
+    abstract public function find($selector, $prefix = 'descendant::');
+
+    /** @see TraversalTrait::findXPath() */
+    abstract public function findXPath($xpath);
+
+    /** @see TraversalTrait::newNodeList() */
+    abstract public function newNodeList($nodes = []);
+
     /**
      * Magic method - Trap function names using reserved keyword (empty, clone, etc..)
      *
      * @param string $name
-     * @param array $arguments
+     * @param mixed $arguments
      *
      * @return mixed
      */
-    public function __call(string $name, array $arguments) {
+    public function __call($name, $arguments) {
         if (!method_exists($this, '_' . $name)) {
             throw new \BadMethodCallException("Call to undefined method " . get_class($this) . '::' . $name . "()");
         }
@@ -33,28 +49,16 @@ trait ManipulationTrait
     }
 
     /**
-     * @return string
-     */
-    public function __toString(): string {
-        return $this->getOuterHtml(true);
-    }
-
-    /**
      * @param string|NodeList|\DOMNode $input
      *
-     * @return iterable
+     * @return array|NodeList|\Traversable
      */
-    protected function inputPrepareAsTraversable($input): iterable {
+    protected function inputPrepareAsTraversable($input) {
         if ($input instanceof \DOMNode) {
-            // Handle raw \DOMNode elements and 'convert' them into their DOMWrap/* counterpart
-            if (!method_exists($input, 'inputPrepareAsTraversable')) {
-                $input = $this->document()->importNode($input, true);
-            }
-
             $nodes = [$input];
         } else if (is_string($input)) {
             $nodes = $this->nodesFromHtml($input);
-        } else if (is_iterable($input)) {
+        } else if (is_array($input) || $input instanceof \Traversable) {
             $nodes = $input;
         } else {
             throw new \InvalidArgumentException();
@@ -65,25 +69,20 @@ trait ManipulationTrait
 
     /**
      * @param string|NodeList|\DOMNode $input
-     * @param bool $cloneForManipulate
      *
      * @return NodeList
      */
-    protected function inputAsNodeList($input, $cloneForManipulate = true): NodeList {
+    protected function inputAsNodeList($input) {
         $nodes = $this->inputPrepareAsTraversable($input);
 
         $newNodes = $this->newNodeList();
 
         foreach ($nodes as $node) {
             if ($node->document() !== $this->document()) {
-                 $node = $this->document()->importNode($node, true);
+                $newNodes[] = $this->document()->importNode($node, true);
+            } else {
+                $newNodes[] = $node;
             }
-
-            if ($cloneForManipulate && $node->parentNode !== null) {
-                $node = $node->cloneNode(true);
-            }
-
-            $newNodes[] = $node;
         }
 
         return $newNodes;
@@ -92,9 +91,9 @@ trait ManipulationTrait
     /**
      * @param string|NodeList|\DOMNode $input
      *
-     * @return \DOMNode|null
+     * @return NodeList
      */
-    protected function inputAsFirstNode($input): ?\DOMNode {
+    protected function inputAsFirstNode($input) {
         $nodes = $this->inputAsNodeList($input);
 
         return $nodes->findXPath('self::*')->first();
@@ -105,30 +104,23 @@ trait ManipulationTrait
      *
      * @return NodeList
      */
-    protected function nodesFromHtml($html): NodeList {
+    protected function nodesFromHtml($html) {
         $class = get_class($this->document());
         $doc = new $class();
-        $doc->setEncoding($this->document()->getEncoding());
         $nodes = $doc->html($html)->find('body > *');
 
         return $nodes;
     }
 
     /**
-     * @param string|NodeList|\DOMNode|callable $input
-     * @param callable $callback
-     *
-     * @return self
+     * @param string|NodeList|\DOMNode|\Closure $input
+     * @param \Closure $callback
      */
-    protected function manipulateNodesWithInput($input, callable $callback): self {
+    protected function manipulateNodesWithInput($input, \Closure $callback) {
         $this->collection()->each(function($node, $index) use ($input, $callback) {
             $html = $input;
 
-            /*if ($input instanceof \DOMNode) {
-                if ($input->parentNode !== null) {
-                    $html = $input->cloneNode(true);
-                }
-            } else*/if (is_callable($input)) {
+            if ($input instanceof \Closure) {
                 $html = $input($node, $index);
             }
 
@@ -136,8 +128,6 @@ trait ManipulationTrait
 
             $callback($node, $newNodes);
         });
-
-        return $this;
     }
 
     /**
@@ -145,7 +135,7 @@ trait ManipulationTrait
      *
      * @return NodeList
      */
-    public function detach(string $selector = null): NodeList {
+    public function detach($selector = null) {
         if (!is_null($selector)) {
             $nodes = $this->find($selector, 'self::');
         } else {
@@ -170,18 +160,18 @@ trait ManipulationTrait
      *
      * @return self
      */
-    public function remove(string $selector = null): self {
+    public function remove($selector = null) {
         $this->detach($selector);
 
         return $this;
     }
 
     /**
-     * @param string|NodeList|\DOMNode|callable $input
+     * @param string|NodeList|\DOMNode|\Closure $input
      *
      * @return self
      */
-    public function replaceWith($input): self {
+    public function replaceWith($input) {
         $this->manipulateNodesWithInput($input, function($node, $newNodes) {
             foreach ($newNodes as $newNode) {
                 $node->parent()->replaceChild($newNode, $node);
@@ -192,7 +182,7 @@ trait ManipulationTrait
     }
 
     /**
-     * @param string|NodeList|\DOMNode|callable $input
+     * @param string|NodeList|\DOMNode|\Closure $input
      *
      * @return string|self
      */
@@ -207,18 +197,18 @@ trait ManipulationTrait
     /**
      * @return string
      */
-    public function getText(): string {
-        return (string)$this->collection()->reduce(function($carry, $node) {
+    public function getText() {
+        return $this->collection()->reduce(function($carry, $node) {
             return $carry . $node->textContent;
         }, '');
     }
 
     /**
-     * @param string|NodeList|\DOMNode|callable $input
+     * @param string|NodeList|\DOMNode|\Closure $input
      *
-     * @return self
+     * @return string
      */
-    public function setText($input): self {
+    public function setText($input) {
         if (is_string($input)) {
             $input = new Text($input);
         }
@@ -230,16 +220,14 @@ trait ManipulationTrait
             // Add new contents in it's place.
             $node->append(new Text($newNodes->getText()));
         });
-
-        return $this;
     }
 
     /**
-     * @param string|NodeList|\DOMNode|callable $input
+     * @param string|NodeList|\DOMNode|\Closure $input
      *
      * @return self
      */
-    public function before($input): self {
+    public function before($input) {
         $this->manipulateNodesWithInput($input, function($node, $newNodes) {
             foreach ($newNodes as $newNode) {
                 $node->parent()->insertBefore($newNode, $node);
@@ -250,11 +238,11 @@ trait ManipulationTrait
     }
 
     /**
-     * @param string|NodeList|\DOMNode|callable $input
+     * @param string|NodeList|\DOMNode|\Closure $input
      *
      * @return self
      */
-    public function after($input): self {
+    public function after($input) {
         $this->manipulateNodesWithInput($input, function($node, $newNodes) {
             foreach ($newNodes as $newNode) {
                 if (is_null($node->following())) {
@@ -269,11 +257,11 @@ trait ManipulationTrait
     }
 
     /**
-     * @param string|NodeList|\DOMNode|callable $input
+     * @param string|NodeList|\DOMNode|\Closure $input
      *
      * @return self
      */
-    public function prepend($input): self {
+    public function prepend($input) {
         $this->manipulateNodesWithInput($input, function($node, $newNodes) {
             foreach ($newNodes as $newNode) {
                 $node->insertBefore($newNode, $node->contents()->first());
@@ -284,11 +272,11 @@ trait ManipulationTrait
     }
 
     /**
-     * @param string|NodeList|\DOMNode|callable $input
+     * @param string|NodeList|\DOMNode|\Closure $input
      *
      * @return self
      */
-    public function append($input): self {
+    public function append($input) {
         $this->manipulateNodesWithInput($input, function($node, $newNodes) {
             foreach ($newNodes as $newNode) {
                 $node->appendChild($newNode);
@@ -299,43 +287,9 @@ trait ManipulationTrait
     }
 
     /**
-     * @param string|NodeList|\DOMNode $selector
-     *
      * @return self
      */
-    public function prependTo($selector): self {
-        if ($selector instanceof \DOMNode || $selector instanceof NodeList) {
-            $nodes = $this->inputAsNodeList($selector);
-        } else {
-            $nodes = $this->document()->find($selector);
-        }
-
-        $nodes->prepend($this);
-
-        return $this;
-    }
-
-    /**
-     * @param string|NodeList|\DOMNode $selector
-     *
-     * @return self
-     */
-    public function appendTo($selector): self {
-        if ($selector instanceof \DOMNode || $selector instanceof NodeList) {
-            $nodes = $this->inputAsNodeList($selector);
-        } else {
-            $nodes = $this->document()->find($selector);
-        }
-
-        $nodes->append($this);
-
-        return $this;
-    }
-
-    /**
-     * @return self
-     */
-    public function _empty(): self {
+    public function _empty() {
         $this->collection()->each(function($node) {
             $node->contents()->remove();
         });
@@ -361,7 +315,7 @@ trait ManipulationTrait
      *
      * @return self
      */
-    public function removeAttr(string $name): self {
+    public function removeAttr($name) {
         $this->collection()->each(function($node) use($name) {
             if ($node instanceof \DOMElement) {
                 $node->removeAttribute($name);
@@ -376,8 +330,8 @@ trait ManipulationTrait
      *
      * @return bool
      */
-    public function hasAttr(string $name): bool {
-        return (bool)$this->collection()->reduce(function($carry, $node) use ($name) {
+    public function hasAttr($name) {
+        return $this->collection()->reduce(function($carry, $node) use ($name) {
             if ($node->hasAttribute($name)) {
                 return true;
             }
@@ -391,9 +345,9 @@ trait ManipulationTrait
      *
      * @param string $name
      *
-     * @return string
+     * @return string|null
      */
-    public function getAttr(string $name): string {
+    public function getAttr($name) {
         $node = $this->collection()->first();
 
         if (!($node instanceof \DOMElement)) {
@@ -416,14 +370,14 @@ trait ManipulationTrait
      * @internal
      *
      * @param string $name
-     * @param mixed $value
+     * @param string|null $value
      *
      * @return self
      */
-    public function setAttr(string $name, $value): self {
+    public function setAttr($name, $value) {
         $this->collection()->each(function($node) use($name, $value) {
             if ($node instanceof \DOMElement) {
-                $node->setAttribute($name, (string)$value);
+                $node->setAttribute($name, $value);
             }
         });
 
@@ -432,11 +386,11 @@ trait ManipulationTrait
 
     /**
      * @param string $name
-     * @param mixed $value
+     * @param string|null $value
      *
-     * @return self|string
+     * @return self|mixed
      */
-    public function attr(string $name, $value = null) {
+    public function attr($name, $value = null) {
         if (is_null($value)) {
             return $this->getAttr($name);
         } else {
@@ -448,15 +402,15 @@ trait ManipulationTrait
      * @internal
      *
      * @param string $name
-     * @param string|callable $value
+     * @param string|\Closure $value
      * @param bool $addValue
      */
-    protected function _pushAttrValue(string $name, $value, bool $addValue = false): void {
+    protected function _pushAttrValue($name, $value, $addValue = false) {
         $this->collection()->each(function($node, $index) use($name, $value, $addValue) {
             if ($node instanceof \DOMElement) {
                 $attr = $node->getAttribute($name);
 
-                if (is_callable($value)) {
+                if ($value instanceof \Closure) {
                     $value = $value($node, $index, $attr);
                 }
 
@@ -486,22 +440,22 @@ trait ManipulationTrait
     }
 
     /**
-     * @param string|callable $class
+     * @param string|\Closure $class
      *
      * @return self
      */
-    public function addClass($class): self {
+    public function addClass($class) {
         $this->_pushAttrValue('class', $class, true);
 
         return $this;
     }
 
     /**
-     * @param string|callable $class
+     * @param string|\Closure $class
      *
      * @return self
      */
-    public function removeClass($class): self {
+    public function removeClass($class) {
         $this->_pushAttrValue('class', $class);
 
         return $this;
@@ -512,11 +466,11 @@ trait ManipulationTrait
      *
      * @return bool
      */
-    public function hasClass(string $class): bool {
-        return (bool)$this->collection()->reduce(function($carry, $node) use ($class) {
+    public function hasClass($class) {
+        return $this->collection()->reduce(function($carry, $node) use ($class) {
             $attr = $node->getAttr('class');
 
-            return array_reduce(explode(' ', (string)$attr), function($carry, $item) use ($class) {
+            return array_reduce(explode(' ', $attr), function($carry, $item) use ($class) {
                 if (strcasecmp($item, $class) == 0) {
                     return true;
                 }
@@ -531,7 +485,7 @@ trait ManipulationTrait
      *
      * @return \SplStack
      */
-    protected function _getFirstChildWrapStack(Element $node): \SplStack {
+    protected function _getFirstChildWrapStack(Element $node) {
         $stack = new \SplStack;
 
         do {
@@ -551,7 +505,7 @@ trait ManipulationTrait
      *
      * @return \SplStack
      */
-    protected function _prepareWrapStack(Element $node): \SplStack {
+    protected function _prepareWrapStack(Element $node) {
         // Generate a stack (root to leaf) of the wrapper.
         // Includes only first element nodes / first element children.
         $stackNodes = $this->_getFirstChildWrapStack($node);
@@ -565,14 +519,14 @@ trait ManipulationTrait
     }
 
     /**
-     * @param string|NodeList|\DOMNode|callable $input
-     * @param callable $callback
+     * @param string|NodeList|\DOMNode|\Closure $input
+     * @param \Closure $callback
      */
-    protected function wrapWithInputByCallback($input, callable $callback): void {
+    protected function wrapWithInputByCallback($input, \Closure $callback) {
         $this->collection()->each(function($node, $index) use ($input, $callback) {
             $html = $input;
 
-            if (is_callable($input)) {
+            if ($input instanceof \Closure) {
                 $html = $input($node, $index);
             }
 
@@ -588,11 +542,11 @@ trait ManipulationTrait
     }
 
     /**
-     * @param string|NodeList|\DOMNode|callable $input
+     * @param string|NodeList|\DOMNode|\Closure $input
      *
      * @return self
      */
-    public function wrapInner($input): self {
+    public function wrapInner($input) {
         $this->wrapWithInputByCallback($input, function($node, $stackNodes) {
             foreach ($node->contents() as $child) {
                 // Remove child from the current node
@@ -610,11 +564,11 @@ trait ManipulationTrait
     }
 
     /**
-     * @param string|NodeList|\DOMNode|callable $input
+     * @param string|NodeList|\DOMNode|\Closure $input
      *
      * @return self
      */
-    public function wrap($input): self {
+    public function wrap($input) {
         $this->wrapWithInputByCallback($input, function($node, $stackNodes) {
             // Add the new bottom (root) node after the current node
             $node->after($stackNodes->bottom());
@@ -630,16 +584,16 @@ trait ManipulationTrait
     }
 
     /**
-     * @param string|NodeList|\DOMNode|callable $input
+     * @param string|NodeList|\DOMNode|\Closure $input
      *
      * @return self
      */
-    public function wrapAll($input): self {
+    public function wrapAll($input) {
         if (!$this->collection()->count()) {
             return $this;
         }
 
-        if (is_callable($input)) {
+        if ($input instanceof \Closure) {
             $input = $input($this->collection()->first());
         }
 
@@ -665,7 +619,7 @@ trait ManipulationTrait
     /**
      * @return self
      */
-    public function unwrap(): self {
+    public function unwrap() {
         $this->collection()->each(function($node) {
             $parent = $node->parent();
 
@@ -683,45 +637,29 @@ trait ManipulationTrait
     }
 
     /**
-     * @param int $isIncludeAll
-     *
      * @return string
      */
-    public function getOuterHtml(bool $isIncludeAll = false): string {
-        $nodes = $this->collection();
+    public function getOuterHtml() {
+        return $this->document()->saveHTML(
+            $this->collection()->first()
+        );
+    }
 
-        if (!$isIncludeAll) {
-            $nodes = $this->newNodeList([$nodes->first()]);
-        }
-
-        return $nodes->reduce(function($carry, $node) {
+    /**
+     * @return string
+     */
+    public function getHtml() {
+        return $this->collection()->first()->children()->reduce(function($carry, $node) {
             return $carry . $this->document()->saveHTML($node);
         }, '');
     }
 
     /**
-     * @param int $isIncludeAll
-     *
-     * @return string
-     */
-    public function getHtml(bool $isIncludeAll = false): string {
-        $nodes = $this->collection();
-
-        if (!$isIncludeAll) {
-            $nodes = $this->newNodeList([$nodes->first()]);
-        }
-
-        return $nodes->contents()->reduce(function($carry, $node) {
-            return $carry . $this->document()->saveHTML($node);
-        }, '');
-    }
-
-    /**
-     * @param string|NodeList|\DOMNode|callable $input
+     * @param string|NodeList|\DOMNode|\Closure $input
      *
      * @return self
      */
-    public function setHtml($input): self {
+    public function setHtml($input) {
         $this->manipulateNodesWithInput($input, function($node, $newNodes) {
             // Remove old contents from the current node.
             $node->contents()->remove();
@@ -734,7 +672,7 @@ trait ManipulationTrait
     }
 
     /**
-     * @param string|NodeList|\DOMNode|callable $input
+     * @param string|NodeList|\DOMNode|\Closure $input
      *
      * @return string|self
      */
@@ -790,14 +728,5 @@ trait ManipulationTrait
         } else {
             return $this;
         }
-    }
-
-    /**
-     * @param string|NodeList|\DOMNode $input
-     *
-     * @return NodeList
-     */
-    public function create($input): NodeList {
-        return $this->inputAsNodeList($input);
     }
 }

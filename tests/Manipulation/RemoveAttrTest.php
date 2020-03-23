@@ -2,7 +2,7 @@
 
 namespace DOMWrap\Tests\Manipulation;
 
-class RemoveAttrTest extends \PHPUnit\Framework\TestCase
+class RemoveAttrTest extends \PHPUnit_Framework_TestCase
 {
     use \DOMWrap\Tests\Harness\TestTrait;
 

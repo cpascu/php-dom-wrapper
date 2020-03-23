@@ -2,7 +2,7 @@
 
 namespace DOMWrap\Tests\Manipulation;
 
-class EmptyTest extends \PHPUnit\Framework\TestCase
+class EmptyTest extends \PHPUnit_Framework_TestCase
 {
     use \DOMWrap\Tests\Harness\TestTrait;
 

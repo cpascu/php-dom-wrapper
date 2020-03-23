@@ -2,7 +2,7 @@
 
 namespace DOMWrap\Tests\Manipulation;
 
-class CloneTest extends \PHPUnit\Framework\TestCase
+class CloneTest extends \PHPUnit_Framework_TestCase
 {
     use \DOMWrap\Tests\Harness\TestTrait;
 

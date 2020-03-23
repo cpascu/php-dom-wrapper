@@ -4,7 +4,7 @@ namespace DOMWrap\Tests\Manipulation;
 
 use DOMWrap\Element;
 
-class parentTest extends \PHPUnit\Framework\TestCase
+class parentTest extends \PHPUnit_Framework_TestCase
 {
     use \DOMWrap\Tests\Harness\TestTrait;
 

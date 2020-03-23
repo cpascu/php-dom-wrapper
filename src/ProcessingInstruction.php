@@ -1,13 +1,11 @@
-<?php declare(strict_types=1);
+<?php
 
 namespace DOMWrap;
 
-use DOMWrap\Traits\{
-    NodeTrait,
-    CommonTrait,
-    TraversalTrait,
-    ManipulationTrait
-};
+use DOMWrap\Traits\NodeTrait;
+use DOMWrap\Traits\CommonTrait;
+use DOMWrap\Traits\TraversalTrait;
+use DOMWrap\Traits\ManipulationTrait;
 
 /**
  * ProcessingInstruction Node

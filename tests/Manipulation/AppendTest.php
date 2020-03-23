@@ -2,11 +2,11 @@
 
 namespace DOMWrap\Tests\Manipulation;
 
-class AppendTest extends \PHPUnit\Framework\TestCase
+class AppendTest extends \PHPUnit_Framework_TestCase
 {
     use \DOMWrap\Tests\Harness\TestTrait;
 
-    public function testAppendString() {
+    public function testAppendNode() {
         $expected = $this->document('<html><div class="test">some test content<div class="inserted"></div></div></html>');
 
         $doc = $this->document('<html><div class="test">some test content</div></html>');
@@ -44,16 +44,6 @@ class AppendTest extends \PHPUnit\Framework\TestCase
         $nodes->append(function($node, $index) {
             return '<div class="inserted"></div>';
         });
-
-        $this->assertEqualXMLStructure($expected->children()->first(), $doc->children()->first(), true);
-    }
-
-    public function testAppendNode() {
-        $expected = $this->document('<html><ul><li><span></span></li><li><span></span></li></ul></html>');
-
-        $doc = $this->document('<html><ul><li></li><li></li></ul></html>');
-        $nodes = $doc->find('li');
-        $nodes->append($doc->createElement('span'));
 
         $this->assertEqualXMLStructure($expected->children()->first(), $doc->children()->first(), true);
     }

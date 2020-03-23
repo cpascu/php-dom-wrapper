@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+<?php
 
 namespace DOMWrap\Traits;
 
@@ -13,17 +13,23 @@ use DOMWrap\NodeList;
  */
 trait NodeTrait
 {
+    /** @see TraversalTrait::newNodeList() */
+    abstract public function newNodeList($nodes = []);
+
+    /** @see CommonTrait::isRemoved() */
+    abstract public function isRemoved();
+
     /**
      * @return NodeList
      */
-    public function collection(): NodeList {
+    public function collection() {
         return $this->newNodeList([$this]);
     }
 
     /**
      * @return \DOMDocument
      */
-    public function document(): ?\DOMDocument {
+    public function document() {
         if ($this->isRemoved()) {
             return null;
         }
@@ -34,9 +40,9 @@ trait NodeTrait
     /**
      * @param NodeList $nodeList
      *
-     * @return NodeList|\DOMNode|null
+     * @return \DOMNode
      */
-    public function result(NodeList $nodeList) {
+    public function result($nodeList) {
         if ($nodeList->count()) {
             return $nodeList->first();
         }
